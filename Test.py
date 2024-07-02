@@ -1,10 +1,7 @@
-from flask import Flask, request, jsonify
 import json
 import time
 import random
 from helium import start_firefox, go_to, write, press, find_all, S, kill_browser
-
-app = Flask(__name__)
 
 # Base URL for the classification website
 base_url = 'https://www.classification.gov.au'
@@ -53,13 +50,8 @@ def process_json_input(json_file_path):
         data = json.load(f)
     return data['Data']
 
-@app.route('/', methods=['GET'])
-def default_route():
-    return "Welcome to the Movie Details API"
-
-@app.route('/titles', methods=['POST'])
-def check_titles():
-    # Directly read the input JSON file
+def main():
+    # Read input JSON file
     data = process_json_input('input.json')
 
     results = []
@@ -79,7 +71,10 @@ def check_titles():
             delay = max(10, delay / 2)  # Decrease the delay if no errors occur
         time.sleep(random.uniform(delay, delay + 5))  # Randomized delay to respect server load
 
-    return jsonify(results)
+    # Print the results
+    for result in results:
+        print(json.dumps(result, indent=4))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+    main()
+
