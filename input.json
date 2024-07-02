@@ -1,0 +1,34 @@
+{
+  "Data": [
+    {
+      "Title_name": "Inception",
+      "Director_name": "Christopher Nolan",
+      "Producer_name": "Emma Thomas, Christopher Nolan",
+      "Duration": "2h 28min"
+    },
+    {
+      "Title_name": "The Shawshank Redemption",
+      "Director_name": "Frank Darabont",
+      "Producer_name": "Niki Marvin",
+      "Duration": "2h 22min"
+    },
+    {
+      "Title_name": "Pulp Fiction",
+      "Director_name": "Quentin Tarantino",
+      "Producer_name": "Lawrence Bender",
+      "Duration": "2h 34min"
+    },
+    {
+      "Title_name": "The Dark Knight",
+      "Director_name": "Christopher Nolan",
+      "Producer_name": "Emma Thomas, Charles Roven, Christopher Nolan",
+      "Duration": "2h 32min"
+    },
+    {
+      "Title_name": "Interstellar",
+      "Director_name": "Christopher Nolan",
+      "Producer_name": "Emma Thomas, Christopher Nolan",
+      "Duration": "2h 49min"
+    }
+  ]
+}
