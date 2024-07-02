@@ -1,0 +1,85 @@
+from flask import Flask, request, jsonify
+import json
+import time
+import random
+from helium import start_firefox, go_to, write, press, find_all, S, kill_browser
+
+app = Flask(__name__)
+
+# Base URL for the classification website
+base_url = 'https://www.classification.gov.au'
+
+def fetch_movie_details(title):
+    # Start the browser and go to the search page
+    browser = start_firefox(base_url)
+    go_to(f'{base_url}/search/title')
+
+    # Enter the title in the search box and press Enter
+    write(title, into='Search for a film, game or publication')
+    press(ENTER)
+
+    # Allow some time for the results to load
+    time.sleep(5)
+
+    # Find the relevant movie link and click it
+    movie_links = find_all(S('.c-classifiction-title__text'))
+    for link in movie_links:
+        if title.lower() in link.web_element.text.lower():
+            link.click()
+            break
+
+    # Allow some time for the movie details page to load
+    time.sleep(5)
+
+    # Extract the required details from the page
+    details = {
+        'title': title,
+        'is_listed': True,
+        'classification_date': S('div.field--name-field-date').web_element.text if S('div.field--name-field-date').exists() else 'N/A',
+        'year_of_production': S('div.field--name-field-year-of-production').web_element.text if S('div.field--name-field-year-of-production').exists() else 'N/A',
+        'classification': S('div.field--name-field-consumer-advice').web_element.text if S('div.field--name-field-consumer-advice').exists() else 'N/A',
+        'category': S('div.field--name-field-category-detail').web_element.text if S('div.field--name-field-category-detail').exists() else 'N/A',
+        'duration': S('div.field--name-field-duration').web_element.text if S('div.field--name-field-duration').exists() else 'N/A',
+        'producer': S('div.field--name-field-producer').web_element.text if S('div.field--name-field-producer').exists() else 'N/A',
+        'director_creator': S('div.field--name-field-director').web_element.text if S('div.field--name-field-director').exists() else 'N/A'
+    }
+
+    # Close the browser
+    kill_browser()
+    return details
+
+def process_json_input(json_file_path):
+    with open(json_file_path, 'r') as f:
+        data = json.load(f)
+    return data['Data']
+
+@app.route('/', methods=['GET'])
+def default_route():
+    return "Welcome to the Movie Details API"
+
+@app.route('/titles', methods=['POST'])
+def check_titles():
+    # Directly read the input JSON file
+    data = process_json_input('input.json')
+
+    results = []
+    delay = 10  # Initial delay between requests
+    for item in data:
+        title = item['Title_name']
+        try:
+            details = fetch_movie_details(title)
+            results.append(details)
+            print(f"Fetched details for {title}")
+        except Exception as e:
+            print(f"Error fetching details for {title}: {e}")
+            delay *= 2  # Exponential backoff in case of errors
+            if delay > 60:  # Cap the delay to avoid extremely long waits
+                delay = 60
+        else:
+            delay = max(10, delay / 2)  # Decrease the delay if no errors occur
+        time.sleep(random.uniform(delay, delay + 5))  # Randomized delay to respect server load
+
+    return jsonify(results)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=8080)
