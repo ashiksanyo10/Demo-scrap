@@ -11,11 +11,14 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 # Base URL for the classification website
 base_url = 'https://www.classification.gov.au'
 
+# Path to ChromeDriver executable
+chromedriver_path = 'C:/path/to/chromedriver.exe'  # Replace with the actual path
+
 def fetch_movie_details(title):
-    # Set up the browser (make sure you have geckodriver or chromedriver in your PATH)
+    # Set up the browser (make sure you have the correct path to chromedriver)
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')  # Run headless Chrome
-    browser = webdriver.Chrome(options=options)
+    browser = webdriver.Chrome(executable_path=chromedriver_path, options=options)
 
     try:
         # Go to the search page
