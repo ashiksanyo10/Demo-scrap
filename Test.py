@@ -1,49 +1,81 @@
 import json
 import time
 import random
-from helium import start_firefox, go_to, write, press, find_all, S, kill_browser
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Base URL for the classification website
 base_url = 'https://www.classification.gov.au'
 
 def fetch_movie_details(title):
-    # Start the browser and go to the search page
-    browser = start_firefox(base_url)
-    go_to(f'{base_url}/search/title')
+    # Set up the browser (make sure you have geckodriver or chromedriver in your PATH)
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')  # Run headless Chrome
+    browser = webdriver.Chrome(options=options)
 
-    # Enter the title in the search box and press Enter
-    write(title, into='Search for a film, game or publication')
-    press(ENTER)
+    try:
+        # Go to the search page
+        browser.get(f'{base_url}/search/title')
 
-    # Allow some time for the results to load
-    time.sleep(5)
+        # Enter the title in the search box and press Enter
+        search_box = browser.find_element(By.NAME, 'search')
+        search_box.send_keys(title)
+        search_box.send_keys(Keys.RETURN)
 
-    # Find the relevant movie link and click it
-    movie_links = find_all(S('.c-classifiction-title__text'))
-    for link in movie_links:
-        if title.lower() in link.web_element.text.lower():
-            link.click()
-            break
+        # Wait for the results to load and display the links
+        WebDriverWait(browser, 10).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.c-classifiction-title__text')))
 
-    # Allow some time for the movie details page to load
-    time.sleep(5)
+        # Find the relevant movie link and click it
+        movie_links = browser.find_elements(By.CSS_SELECTOR, '.c-classifiction-title__text')
+        for link in movie_links:
+            if title.lower() in link.text.lower():
+                link.click()
+                break
 
-    # Extract the required details from the page
-    details = {
-        'title': title,
-        'is_listed': True,
-        'classification_date': S('div.field--name-field-date').web_element.text if S('div.field--name-field-date').exists() else 'N/A',
-        'year_of_production': S('div.field--name-field-year-of-production').web_element.text if S('div.field--name-field-year-of-production').exists() else 'N/A',
-        'classification': S('div.field--name-field-consumer-advice').web_element.text if S('div.field--name-field-consumer-advice').exists() else 'N/A',
-        'category': S('div.field--name-field-category-detail').web_element.text if S('div.field--name-field-category-detail').exists() else 'N/A',
-        'duration': S('div.field--name-field-duration').web_element.text if S('div.field--name-field-duration').exists() else 'N/A',
-        'producer': S('div.field--name-field-producer').web_element.text if S('div.field--name-field-producer').exists() else 'N/A',
-        'director_creator': S('div.field--name-field-director').web_element.text if S('div.field--name-field-director').exists() else 'N/A'
-    }
+        # Wait for the movie details page to load
+        WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'div.content-bottom')))
 
-    # Close the browser
-    kill_browser()
+        # Extract the required details from the page
+        details = {
+            'title': title,
+            'is_listed': True,
+            'classification_date': browser.find_element(By.CSS_SELECTOR, 'div.field--name-field-date').text if element_exists(browser, By.CSS_SELECTOR, 'div.field--name-field-date') else 'N/A',
+            'year_of_production': browser.find_element(By.CSS_SELECTOR, 'div.field--name-field-year-of-production').text if element_exists(browser, By.CSS_SELECTOR, 'div.field--name-field-year-of-production') else 'N/A',
+            'classification': browser.find_element(By.CSS_SELECTOR, 'div.field--name-field-consumer-advice').text if element_exists(browser, By.CSS_SELECTOR, 'div.field--name-field-consumer-advice') else 'N/A',
+            'category': browser.find_element(By.CSS_SELECTOR, 'div.field--name-field-category-detail').text if element_exists(browser, By.CSS_SELECTOR, 'div.field--name-field-category-detail') else 'N/A',
+            'duration': browser.find_element(By.CSS_SELECTOR, 'div.field--name-field-duration').text if element_exists(browser, By.CSS_SELECTOR, 'div.field--name-field-duration') else 'N/A',
+            'producer': browser.find_element(By.CSS_SELECTOR, 'div.field--name-field-producer').text if element_exists(browser, By.CSS_SELECTOR, 'div.field--name-field-producer') else 'N/A',
+            'director_creator': browser.find_element(By.CSS_SELECTOR, 'div.field--name-field-director').text if element_exists(browser, By.CSS_SELECTOR, 'div.field--name-field-director') else 'N/A'
+        }
+    except (TimeoutException, NoSuchElementException) as e:
+        print(f"Error fetching details for {title}: {e}")
+        details = {
+            'title': title,
+            'is_listed': False,
+            'classification_date': 'N/A',
+            'year_of_production': 'N/A',
+            'classification': 'N/A',
+            'category': 'N/A',
+            'duration': 'N/A',
+            'producer': 'N/A',
+            'director_creator': 'N/A'
+        }
+    finally:
+        # Close the browser
+        browser.quit()
+
     return details
+
+def element_exists(browser, by, value):
+    try:
+        browser.find_element(by, value)
+    except NoSuchElementException:
+        return False
+    return True
 
 def process_json_input(json_file_path):
     with open(json_file_path, 'r') as f:
@@ -77,4 +109,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
